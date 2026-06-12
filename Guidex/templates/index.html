@@ -1,233 +1,201 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>GuideX - Navigation Assistant</title>
-    <meta name="description" content="AI Navigation Assistant for Visually Impaired">
+    <title>GuideX - AI Navigation Assistant</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
-        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDsIVIzXFVHIgnfcT0i88PCGlS9GdAm9pQ&libraries=places"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <!-- Google Maps API - Replace YOUR_API_KEY with your actual key -->
-    <script
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDsIVIzXFVHIgnfcT0i88PCGlS9GdAm9pQ&libraries=places,directions"
-        async defer></script>
 </head>
-
 <body>
-    <!-- Mesh gradient background -->
-    <div class="mesh-bg" aria-hidden="true"></div>
-    <div class="noise-overlay" aria-hidden="true"></div>
-
-    <div class="app-shell">
-        <!-- Sidebar -->
-        <aside class="sidebar">
-            <div class="sidebar-logo">
-                <div class="logo-icon">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                        <path d="M4 14C4 14 8 6 14 6C20 6 24 14 24 14C24 14 20 22 14 22C8 22 4 14 4 14Z"
-                            stroke="url(#sg)" stroke-width="2" stroke-linecap="round" />
-                        <circle cx="14" cy="14" r="3.5" fill="url(#sg)" />
-                        <defs>
-                            <linearGradient id="sg" x1="4" y1="6" x2="24" y2="22">
-                                <stop stop-color="#818cf8" />
-                                <stop offset="1" stop-color="#38bdf8" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
-                </div>
-                <div class="logo-text">
-                    <span class="logo-title">GuideX</span>
-                    <span class="logo-badge">AI</span>
-                </div>
-            </div>
-
-            <nav class="sidebar-nav">
-                <div class="nav-section-label">Controls</div>
-                <button id="startBtn" class="nav-btn nav-btn-start" aria-label="Start Navigation">
-                    <span class="nav-btn-icon">▶</span>
-                    <span>Start Navigation</span>
-                </button>
-                <button id="stopBtn" class="nav-btn nav-btn-stop" aria-label="Stop Navigation" disabled>
-                    <span class="nav-btn-icon">⏸</span>
-                    <span>Stop</span>
-                </button>
-
-                <div class="nav-section-label">Quick Actions</div>
-                <button id="voiceBtn" class="nav-btn nav-btn-voice" aria-label="Voice Assistant">
-                    <span class="nav-btn-icon">🎤</span>
-                    <span>Ask Mickey</span>
-                </button>
-                <button id="mickeyLiveBtn" class="nav-btn nav-btn-voice" aria-label="Toggle Mickey live assistant">
-                    <span class="nav-btn-icon">●</span>
-                    <span>Mickey Live</span>
-                </button>
-                <button id="smartLookBtn" class="nav-btn nav-btn-voice" aria-label="Use Mickey Smart Look">
-                    <span class="nav-btn-icon">👁</span>
-                    <span>Smart Look</span>
-                </button>
-                <div class="mickey-command">
-                    <input id="mickeyTextInput" type="text" placeholder="Type Mickey command..."
-                        aria-label="Type a Mickey command" />
-                    <button id="mickeySendBtn" type="button" aria-label="Send Mickey command">Ask</button>
-                </div>
-                <div id="mickeyStatus" class="mickey-status" aria-live="polite">Mickey is ready.</div>
-                <button id="sosBtn" class="nav-btn nav-btn-sos" aria-label="Emergency SOS, hold for 2 seconds">
-                    <span class="nav-btn-icon">🆘</span>
-                    <span>SOS (Hold 2s)</span>
-                </button>
-
-                <div class="nav-section-label">Navigation</div>
-                <button id="locateBtn" class="nav-btn nav-btn-voice" aria-label="Find my location">
-                    <span class="nav-btn-icon">📍</span>
-                    <span>My Location</span>
-                </button>
-                <button id="mapToggleBtn" class="nav-btn"
-                    style="background:rgba(99,102,241,0.15);color:#818cf8;border:1px solid rgba(99,102,241,0.3);"
-                    aria-label="Toggle map">
-                    <span class="nav-btn-icon">🗺️</span>
-                    <span>Toggle Map</span>
-                </button>
-
-                <div class="nav-section-label">Settings</div>
-                <div class="sidebar-setting">
-                    <label for="alertMode">Alert Mode</label>
-                    <select id="alertMode" class="setting-select" aria-label="Select Alert Type">
-                        <option value="english">🔊 English Voice</option>
-                        <option value="sound">🔔 Beeps & Sirens</option>
-                    </select>
-                </div>
-                <div class="sidebar-setting">
-                    <label for="environmentMode">Environment</label>
-                    <select id="environmentMode" class="setting-select" aria-label="Select Environment Context">
-                        <option value="outdoor" selected>🌳 Outdoor</option>
-                        <option value="indoor">🏠 Indoor</option>
-                        <option value="auto">⚡ Auto Detect</option>
-                    </select>
-                </div>
-            </nav>
-
-            <div class="sidebar-footer">
-                <div id="status" class="status-chip" aria-live="polite">
-                    <div class="status-dot"></div>
-                    <span class="status-text">Ready</span>
-                </div>
-            </div>
-        </aside>
-
-        <!-- Main Content -->
-        <main class="main-content">
-            <!-- Hero Stats Bar -->
-            <div class="stats-bar">
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-blue">👁️</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="objectCount">0</span>
-                        <span class="stat-label">Objects Detected</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-green">🛡️</div>
-                    <div class="stat-info">
-                        <span class="stat-value" id="alertCount">0</span>
-                        <span class="stat-label">Alerts Sent</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-purple">🧠</div>
-                    <div class="stat-info">
-                        <span class="stat-value">5</span>
-                        <span class="stat-label">Mickey Assistant</span>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-icon stat-icon-pink">🚦</div>
-                    <div class="stat-info">
-                        <span class="stat-value">Active</span>
-                        <span class="stat-label">Signal Detection</span>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-left">
+                <div class="logo">
+                    <div class="logo-icon">👁️</div>
+                    <div class="logo-text">
+                        <h1>GuideX</h1>
+                        <span class="tagline">AI Navigation Assistant</span>
                     </div>
                 </div>
             </div>
 
-            <!-- Video + Detections -->
-            <div class="content-grid">
-                <div class="video-card">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <span class="live-indicator"><span class="live-dot"></span>LIVE</span>
-                            Camera Feed
+            <div class="header-center">
+                <span id="statusText" class="status-indicator"><span class="status-dot"></span>System Ready</span>
+            </div>
+
+            <div class="header-right">
+                <select id="languageSelect" class="lang-select" aria-label="Select Language">
+                    <option value="en">🇬🇧 English</option>
+                    <option value="hi">🇮🇳 हिन्दी</option>
+                    <option value="te">🇮🇳 తెలుగు</option>
+                </select>
+            </div>
+        </header>
+
+        <!-- Main Content Grid -->
+        <div class="main-grid">
+            <!-- Left Panel: Map -->
+            <section class="map-panel">
+                <div class="map-header">
+                    <h2><i class="fas fa-map"></i> Live Location</h2>
+                </div>
+                <div id="map" class="map-container"></div>
+                <div class="map-controls">
+                    <button id="centerMapBtn" class="control-btn" title="Center Map">
+                        <i class="fas fa-compass"></i>
+                    </button>
+                    <button id="toggleMapBtn" class="control-btn" title="Satellite View">
+                        <i class="fas fa-satellite"></i>
+                    </button>
+                </div>
+            </section>
+
+            <!-- Center Panel: Camera & Detection -->
+            <section class="camera-panel">
+                <div class="camera-header">
+                    <h2><i class="fas fa-camera"></i> Live Camera</h2>
+                    <div class="camera-status" id="cameraStatus">
+                        <span class="dot"></span>
+                        <span id="cameraStatusText">Inactive</span>
+                    </div>
+                </div>
+                <div class="camera-feed-container">
+                    <img id="videoFeed" src="#" alt="Camera Feed" class="camera-feed">
+                    <div class="feed-overlay">
+                        <div id="detectionInfo" class="detection-info">
+                            <div id="detectionCount" class="info-item">
+                                <span class="label">Objects:</span>
+                                <span class="value">0</span>
+                            </div>
+                            <div id="faceCount" class="info-item">
+                                <span class="label">Faces:</span>
+                                <span class="value">0</span>
+                            </div>
+                            <div id="textCount" class="info-item">
+                                <span class="label">Text:</span>
+                                <span class="value">None</span>
+                            </div>
                         </div>
                     </div>
-                    <div class="video-wrapper">
-                        <img id="videoStream" src="{{ url_for('video_feed') }}"
-                            alt="Live camera feed showing object detection overlays" />
-                    </div>
                 </div>
 
-                <!-- Google Map Panel -->
-                <div class="map-card" id="mapPanel">
+                <!-- Control Buttons -->
+                <div class="button-group">
+                    <button id="startNavBtn" class="btn btn-primary" onclick="startNavigation()">
+                        <i class="fas fa-play"></i> Start Navigation
+                    </button>
+                    <button id="stopNavBtn" class="btn btn-danger" onclick="stopNavigation()" disabled>
+                        <i class="fas fa-stop"></i> Stop Navigation
+                    </button>
+                </div>
+            </section>
+
+            <!-- Right Panel: Features & Voice -->
+            <section class="features-panel">
+                <!-- Voice Assistant -->
+                <div class="feature-card">
                     <div class="card-header">
-                        <div class="card-title">🗺️ Navigation Map</div>
-                        <div class="map-coords" id="mapCoords">Locating...</div>
+                        <h3><i class="fas fa-microphone"></i> Voice Assistant</h3>
                     </div>
-                    <!-- Destination search -->
-                    <div class="map-search-bar">
-                        <input id="destinationInput" type="text" placeholder="Enter destination..."
-                            aria-label="Destination address" class="map-search-input" />
-                        <button id="navigateBtn" class="map-nav-btn" aria-label="Start navigation">
-                            <span>Navigate</span> ➤
+                    <div class="card-body">
+                        <button id="voiceBtn" class="voice-button" onclick="toggleVoice()">
+                            <i class="fas fa-microphone"></i>
+                            <span id="voiceText">Click to Speak</span>
                         </button>
-                    </div>
-                    <!-- Map container -->
-                    <div id="googleMap" class="google-map-container" aria-label="Google Maps navigation view"></div>
-                    <!-- Route info -->
-                    <div id="routeInfo" class="route-info" style="display:none;">
-                        <div class="route-info-row">
-                            <span class="route-icon">📏</span>
-                            <span id="routeDistance">--</span>
-                        </div>
-                        <div class="route-info-row">
-                            <span class="route-icon">⏱️</span>
-                            <span id="routeDuration">--</span>
-                        </div>
-                        <button id="clearRouteBtn" class="clear-route-btn">✕ Clear Route</button>
+                        <div id="voiceStatus" class="voice-status"></div>
                     </div>
                 </div>
 
-                <div class="detections-card">
+                <!-- Face Recognition -->
+                <div class="feature-card">
                     <div class="card-header">
-                        <div class="card-title">📡 Real-time Detections</div>
+                        <h3><i class="fas fa-face-smile"></i> Face Recognition</h3>
                     </div>
-                    <div id="detections" class="detections-list">
-                        <div class="empty-state">
-                            <div class="empty-state-icon">🔍</div>
-                            <p>No objects detected yet</p>
-                            <p class="empty-state-hint">Press <strong>Start Navigation</strong> to begin AI detection
-                            </p>
+                    <div class="card-body">
+                        <div class="control-row">
+                            <input type="text" id="faceNameInput" placeholder="Enter name" class="input-field">
+                            <button onclick="registerFace()" class="btn btn-small btn-success">Register</button>
                         </div>
-                    </div>
-
-                    <div class="features-strip">
-                        <span class="chip chip-blue">🧠 Intent</span>
-                        <span class="chip chip-green">🚦 Signals</span>
-                        <span class="chip chip-purple">Mickey</span>
-                        <span class="chip chip-orange">⚠️ Hazards</span>
-                        <span class="chip chip-pink">📍 Scene</span>
-                    </div>
-
-                    <div class="tip-box">
-                        Say <em>"Mickey, what's in front of me?"</em> or <em>"Mickey, read this"</em>.
+                        <button onclick="recognizeFace()" class="btn btn-small btn-primary full-width">
+                            <i class="fas fa-face-smile"></i> Who is in front?
+                        </button>
+                        <div id="faceResults" class="results-box"></div>
                     </div>
                 </div>
+
+                <!-- Text Recognition (OCR) -->
+                <div class="feature-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-text-height"></i> Text Recognition</h3>
+                    </div>
+                    <div class="card-body">
+                        <button onclick="readText()" class="btn btn-small btn-info full-width">
+                            <i class="fas fa-file-alt"></i> Read Text
+                        </button>
+                        <div id="textResults" class="results-box"></div>
+                    </div>
+                </div>
+
+                <!-- Navigation -->
+                <div class="feature-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-location-dot"></i> Navigate To</h3>
+                    </div>
+                    <div class="card-body">
+                        <input type="text" id="locationInput" placeholder="Enter location" class="input-field" list="locations">
+                        <datalist id="locations">
+                            <option value="Hospital">
+                            <option value="Police Station">
+                            <option value="Restaurant">
+                            <option value="Shopping Mall">
+                            <option value="Park">
+                        </datalist>
+                        <button onclick="navigateTo()" class="btn btn-small btn-success full-width">
+                            <i class="fas fa-map-location-dot"></i> Start Route
+                        </button>
+                        <div id="navResults" class="results-box"></div>
+                    </div>
+                </div>
+
+                <!-- Registered Faces List -->
+                <div class="feature-card">
+                    <div class="card-header">
+                        <h3><i class="fas fa-users"></i> Registered Faces (<span id="registeredFacesCount">0</span>)</h3>
+                    </div>
+                    <div class="card-body">
+                        <div id="registeredFacesList" class="faces-list"></div>
+                    </div>
+                </div>
+
+                <!-- SOS Button -->
+                <button id="sosBtn" class="btn btn-danger full-width sos-button" onclick="triggerSOS()">
+                    <i class="fas fa-bell-slash"></i> <strong>SOS EMERGENCY</strong>
+                </button>
+            </section>
+        </div>
+
+        <!-- Modal for Messages -->
+        <div id="messageModal" class="modal">
+            <div class="modal-content">
+                <button class="close-btn" onclick="closeModal()">&times;</button>
+                <div id="messageText" class="message-text"></div>
+                <button onclick="closeModal()" class="btn btn-primary">Close</button>
             </div>
-        </main>
+        </div>
+
+        <!-- Toast Notification -->
+        <div id="toast" class="toast"></div>
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script src="{{ url_for('static', filename='maps.js') }}"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
-
 </html>
